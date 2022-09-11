@@ -2,6 +2,8 @@
 output: 
     pdf_document:
         latex_engine: xelatex
+    mainfont:
+        'Microsoft Yahei'
 ---
 # 1
 B
@@ -38,5 +40,5 @@ class information
     float accumulation; \\存入累加数
     float interest; \\利息
     float total; \\账面总数
-}
+};
 ```
