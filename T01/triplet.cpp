@@ -1,6 +1,6 @@
 #include "predef.h"
 #include <stdlib.h>
-#define ElemType int
+typedef int ElemType;
 
 typedef ElemType *Triplet;
 
