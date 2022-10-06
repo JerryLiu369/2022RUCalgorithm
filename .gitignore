@@ -32,8 +32,4 @@
 *.app
 
 # office files
-*.pdf
-*.docx
-*.jpg
 *.zip
-*.csv
