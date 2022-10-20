@@ -291,7 +291,7 @@ void tp_free(Transactionptr &tp_now,Transactionptr &tp_move)
     if (tp_move->next==tp_move)
     {
         free(tp_move);
-        tp_move==NULL;
+        tp_now==NULL;
     }
     else
     {
@@ -311,7 +311,7 @@ void validate(Blockptr &bp, const int &block_count, int &valid, int &invalid)
 {
     for (int i = 0; i < block_count; i++)
     {
-        Transactionptr tp_now = bp[i].transactions;
+        Transactionptr &tp_now = bp[i].transactions;
         if (!tp_now)
             continue;
         Transactionptr tp_move = tp_now;
@@ -374,7 +374,7 @@ void validate(Blockptr &bp, const int &block_count, int &valid, int &invalid)
 
 int main()
 {
-    char root[512] = "full/";
+    char root[512] = "demo/";
     char filename[512];
     int block_count = 0;
     int valid = 0;
@@ -411,26 +411,28 @@ int main()
     //
     validate(bp,block_count,valid,invalid);
     //查询功能实现
-    printf("%d,%d,%d\n",block_count,valid,invalid);
+    printf("区块总数：%d,合法交易总数：%d,不合法交易总数：%d\n",block_count,valid,invalid);
     int inblock=0;
+    printf("请输入查询区块高度：\n");
     scanf("%d",&inblock);
     Block block=bp[inblock];
-    printf("%s;%s;%d",block.hash,block.merkleRoot,block.nonce);
+    printf("区块内容：\nhash:%s;merkleRoot:%s;nonce:%d\n",block.hash,block.merkleRoot,block.nonce);
     char intxid[512];
+    printf("请输入查询交易txID：\n");
     scanf("%s",intxid);
+    int flag = 0;
     for (int i = 0; i < block_count; i++)
     {
-        int flag=0;
         Transactionptr tp_now = bp[i].transactions;
         if (!tp_now)
             continue;
         Transactionptr tp_move = tp_now;
         while (true)
         {
-            if(strcmp(tp_move->txid,intxid))
+            if(strcmp(tp_move->txid,intxid)==0)
             {
                 flag=1;
-                printf("%d,%d,%d",tp_move->is_coinbase,tp_move->input_count,tp_move->output_count);
+                printf("交易内容：\nis_coinbase:%d,input_count:%d,output_count:%d\n",tp_move->is_coinbase,tp_move->input_count,tp_move->output_count);
                 break;
             }
             tp_move = tp_move->next;
@@ -444,5 +446,6 @@ int main()
             break;
         }
     }
+    if(flag==0)printf("交易非法！\n");
     return 0;
 }
