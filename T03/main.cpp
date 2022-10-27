@@ -1,58 +1,132 @@
-﻿#include<iostream>
-#include"rsa.h"
-using std::cout;
-using std::endl;
-using std::cin;
-int main()
+﻿#include "chaininit.h"
+#include "rsa.h"
+#include <stack>
+using std::stack;
+using std::stoi;
+using std::to_string;
+using std::hash;
+
+int isscriptvalid(char *fullscript)
 {
-
-    std::hash<std::string> h;
-    string str0 = "20221009";
-    size_t n0 = h(str0);
-    string str_h= std::to_string(n0);
-    cout<<"HASH of "<<str0<<" is: "<<str_h<<endl;
-
-
-    Rsa rsa1,rsa2;
-    BigInt c,m,s,pr;
-    int pu=0;
-
-    int n=128;
-    rsa1.init(n/2);
-
-    cout << "请输入公钥: " << endl;
-    cin >> pu ;
-    rsa1.setPu(pu);
-    pr=rsa1.showPr();
-    cout << "私钥为: " << pr << endl;
-    // rsa1.showPQ(p,q);
-    // cout << "pq为: " << '(' << p << ',' << q << ')' << endl;
-
-    cout<<"使用私钥签名并验证"<<endl;
-    sign(rsa1,s, std::to_string(pu));// 这里的第三个参数是被签名的字符串
-    verify(rsa1, s, std::to_string(pu));
-
-
-    cout<<"对已知公钥对应的签名进行验证"<<endl;
-    rsa2.init(n/2);
-    rsa2.setPu(pu);
-
-    BigInt ss("22308B989987AEE01DED1BAC4C84497F");
-
-    bool flag = verify(rsa2, ss, std::to_string(pu));
-    cout<<"result of verification:"<<flag<<endl;
-
-
-    BigInt encryptMSG = rsa2.encryptByPr(ss);
-    cout<<"对明文("<<ss<<") 用公钥加密的结果为:"<<encryptMSG<<endl;
-
-    BigInt decodeMSG = rsa2.decodeByPu(encryptMSG);
-
-    cout<<"对密文("<<encryptMSG<<")用私钥解密的结果为:"<<decodeMSG<<endl;
-
-
-
-    return 0;
-
+    string txt(fullscript);
+    stack<string> validstack;
+    set<string> operators{"OP_ADD", "OP_HASH160", "OP_EQUALVERIFY", "OP_DUP", "OP_CHECKSIG"};
+    int ind = txt.find(" ");
+    while (ind != -1)
+    {
+        string now = txt.substr(0, ind);
+        if (operators.count(now))
+        {
+            if (now == "OP_ADD")
+            {
+                int a,b;
+                a=stoi(validstack.top());
+                validstack.pop();
+                b=stoi(validstack.top());
+                validstack.pop();
+                validstack.push(to_string(a+b));
+            }
+            else if (now == "OP_HASH160")
+            {
+                hash<string> strhash;
+                string res=to_string(strhash(validstack.top()));
+                validstack.pop();
+                validstack.push(res);
+            }
+            else if (now == "OP_EQUALVERIFY")
+            {
+                string a,b;
+                a=validstack.top();
+                validstack.pop();
+                b=validstack.top();
+                validstack.pop();
+                if(a!=b)return 0;
+            }
+            else if (now == "OP_DUP")
+            {
+                validstack.push(validstack.top());
+            }
+            else if (now == "OP_CHECKSIG")
+            {
+                string sig,pubK;
+                pubK=validstack.top();
+                validstack.pop();
+                sig=validstack.top();
+                validstack.pop();
+                Rsa rsa;
+                rsa.init(64);
+                rsa.setPu(stoi(pubK));
+                BigInt ss(sig);
+                if(verify(rsa,ss,pubK)==0)return 0;
+            }
+        }
+        else
+            validstack.push(now);
+        txt = txt.substr(ind + 1, txt.length() - ind);
+        ind = txt.find(" ");
+    }
+    return 1;
 }
 
+int isvalid(Inputptr ip, Blockptr chain)
+{
+    Inputptr ip_move = ip;
+    while (true)
+    {
+        ip_move = ip_move->next;
+        char fullscript[512];
+        char *temp = ip_move->scriptSig;
+        temp[strlen(temp) - 1] = '\0';
+        strcpy(fullscript, temp);
+        strcat(fullscript, " ");
+        Transactionptr tp_pre = chain[ip_move->pre_block].transactions;
+        Transactionptr tp_move = tp_pre;
+        while (true)
+        {
+            tp_move = tp_move->next;
+            if (strcmp(tp_move->txid, ip_move->prevTxID) == 0)
+            {
+                char *temp = o_find_out(tp_move->outputs, ip_move->prevTxOutIndex)->script;
+                temp[strlen(temp) - 1] = ' ';
+                strcat(fullscript, temp);
+                int status = isscriptvalid(fullscript);
+                if (status == 0)
+                    return 0;
+                break;
+            }
+        }
+        if (ip_move == ip)
+            break;
+    }
+    return 1;
+}
+
+int main()
+{
+    int n, a, b;
+    Blockptr bp = chaininit(n, a, b);
+    int k;
+    char txid[512];
+    printf("请输入要验证的区块高度：\n");
+    scanf("%d", &k);
+    printf("请输入要验证的交易txid：\n");
+    scanf("%s", txid);
+    Transactionptr tp = bp[k].transactions;
+    Transactionptr tp_move = tp;
+    int valid = 0;
+    while (true)
+    {
+        tp_move = tp_move->next;
+        if (strcmp(tp_move->txid, txid) == 0)
+        {
+            valid = isvalid(tp_move->inputs, bp);
+            break;
+        }
+        if (tp_move == tp)
+        {
+            break;
+        }
+    }
+    printf("此交易验证结果：\n%d\n", valid);
+    return 0;
+}
