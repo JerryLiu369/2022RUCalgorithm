@@ -15,19 +15,26 @@ typedef struct {
 ## 区块
 ```cpp
 typedef struct block {
-    int height;//作为头结点时记录的是总长度
+    int height;
     string hash;
     string prevHash;
     string merkleRoot;
     int nonce;
     transaction *transactions;
-    int transNum;//���еĽ�����
+    int transNum;
     struct block *prev;
     struct block *next;
 } block, *blockList;
 ```
+# 文件
+## node1
+clientmsg1
+blockmsg1
+## node2
+clientmsg2
+blockmsg2
 
-# guest
+# client
 ## data
 ### 交易池
 
@@ -36,8 +43,14 @@ typedef struct block {
 ## message
 ### 客户消息队列
 ### 区块消息队列
+- 1.txt
+2.txt
+height,hash,prevHash,merkleRoot,nonce,transNum
+`1`txid,is_coinbase,input_countoutput_count
+`2`txid,is_coinbase,input_countoutput_count
+`.`
 
-# server
+# Server
 ## function
 ### 交易
 ### 查询

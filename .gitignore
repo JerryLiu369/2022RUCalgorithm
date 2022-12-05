@@ -33,3 +33,6 @@
 
 # office files
 *.zip
+
+# msg folder
+*msg*
